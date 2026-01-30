@@ -1,161 +1,254 @@
-import random
+# symulacje.py
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 # ==========================================
-# 1. KOKPIT STEROWNICZY
+# 1) CONFIG (skalibrowane z pilota)
 # ==========================================
 
-# A. PARAMETRY POPULACJI
-NUM_AGENTS = 1000          # Liczba agentów
-ITERATIONS = 40            # Jak długo trwa eksperyment (czas)
+# Populacja / czas
+NUM_AGENTS = 1000
+ITERATIONS = 40
+SEED = 123
 
-# B. PARAMETRY PSYCHOLOGICZNE
+# Start populacji: pre_scaled (-1..1)
+OPINION_MEAN = 0.5357
+OPINION_SD   = 0.55     # stabilizacja (mniej clippingu niż 0.6344)
 
-# ŹRÓDŁO: Sherif & Hovland (1961) - Social Judgment Theory.
-# Hipoteza: Osoby silnie spolaryzowane mają węższy zakres akceptacji.
-# WARTOŚĆ: Testuj zakres 0.3 (radykałowie) do 0.7 (liberałowie/otwarci).
-LATITUDE_ACCEPTANCE = 0.4  
+# TRUST (0..1) z pilota (stabilizacja SD)
+TRUST_AI_MEAN = 0.5469
+TRUST_AI_SD   = 0.25
 
-# ŹRÓDŁO: Pilotaż (Pytanie o irytację/odrzucenie treści).
-# Jeśli osoba o poglądzie 0.0 odrzuca treść 0.7 jako "bzdurę", to Lat_Rejection = 0.7.
-# Mniejsza liczba = łatwiej kogoś zradykalizować (szybciej "pęka").
-LATITUDE_REJECTION = 0.7   
+TRUST_HUMAN_MEAN = 0.5558
+TRUST_HUMAN_SD   = 0.28
 
-# ŹRÓDŁO: Teoria Reaktancji (Brehm, 1966).
-# Jak mocno "odbijamy się" od ściany, gdy ktoś nas zmusza do zmiany zdania?
-# 0.1 = lekki opór, 1.0 = robimy dokładnie na złość (pełna polaryzacja).
-BOOMERANG_STRENGTH = 0.5   
+# Latitude of Acceptance (dist 0..2) – z pilota
+LAT_ACCEPT_AI_MEAN = 1.3471
+LAT_ACCEPT_AI_SD   = 0.5557
 
-# C. PARAMETRY ZAUFANIA (Główna hipoteza doktoratu)
+LAT_ACCEPT_HUMAN_MEAN = 1.6900
+LAT_ACCEPT_HUMAN_SD   = 0.3642
 
-# ŹRÓDŁO: Pilotaż -> Pytanie "Na ile ten tekst jest wiarygodny?" (Skala 0-1)
-# Średnia ocena dla tekstów oznaczonych etykietą "Wygenerowane przez AI".
-# Literatura (Sundar, 2020) sugeruje Machine Heuristic -> wyższe zaufanie do obiektywizmu (ok. 0.7-0.8).
-TRUST_AI_MEAN = 0.8        
+# Latitude of Rejection – stabilne: Lr = La + buffer
+REJECT_BUFFER_AI = 0.40
+REJECT_BUFFER_H  = 0.45
 
-# ŹRÓDŁO: Pilotaż -> Średnia ocena wiarygodności dla tekstów "Autor: Jan Kowalski".
-# Zazwyczaj niższa niż AI dla faktów (błędy poznawcze), ale wyższa dla opinii.
-TRUST_HUMAN_MEAN = 0.5     
+# Boomerang strength (0..1) – wersja "high dist"
+BOOM_AI_MEAN = 0.6176
+BOOM_AI_SD   = 0.27
 
-# D. BODZIEC (Co im pokazujemy?)
-# 1.0 = Skrajna Prawica/Opcja B, -1.0 = Skrajna Lewica/Opcja A
-RECOMMENDATION_VALUE = 0.3
-SOURCE_TYPE = 'AI'         # 'AI' lub 'HUMAN'
+BOOM_HUMAN_MEAN = 0.5809
+BOOM_HUMAN_SD   = 0.34
+
+# Susceptibility (0..1): Beta (zamiast uniform – stabilniej i ładniej)
+# Beta(2,2) daje większość w środku, mniej ekstremów
+SUSC_ALPHA = 2.0
+SUSC_BETA  = 2.0
+
+# Lista bodźców R (Twoje wagi N1..N16)
+R_ITEMS = np.array([
+    0.00, 0.03, -0.03, 0.00,   # N1..N4
+    -0.30, -0.30, 0.30, 0.30,  # N5..N8
+    -0.80, -0.80, -0.87, -0.93,# N9..N12
+    1.00, 1.00, 0.93, 0.87     # N13..N16
+], dtype=float)
+
+"""# Scenariusz feedu: 'neutral' | 'polarizing_right' | 'polarizing_left'"""
+FEED_MODE = "neutral"
+
+"""# Źródło: 'AI' lub 'HUMAN'"""
+SOURCE_TYPE = "HUMAN"  # <- zmień na "HUMAN" albo zrób pętlę porównawczą
 
 # ==========================================
-# 2. SILNIK SYMULACJI
+# 2) Pomocnicze funkcje losowania z clippingiem
+# ==========================================
+
+def clip(x, lo, hi):
+    return float(np.clip(x, lo, hi))
+
+def sample_normal_clipped(mean, sd, lo, hi, rng):
+    return clip(rng.normal(mean, sd), lo, hi)
+
+def sample_beta_clipped(alpha, beta, rng):
+    return clip(rng.beta(alpha, beta), 0.0, 1.0)
+
+def sample_latitudes(source_type, rng):
+    """Losuje (La, Lr, boom) dla agenta zależnie od źródła."""
+    if source_type == "AI":
+        La = sample_normal_clipped(LAT_ACCEPT_AI_MEAN, LAT_ACCEPT_AI_SD, 0.0, 2.0, rng)
+        Lr = clip(La + REJECT_BUFFER_AI, 0.0, 2.0)
+        boom = sample_normal_clipped(BOOM_AI_MEAN, BOOM_AI_SD, 0.0, 1.0, rng)
+    else:
+        La = sample_normal_clipped(LAT_ACCEPT_HUMAN_MEAN, LAT_ACCEPT_HUMAN_SD, 0.0, 2.0, rng)
+        Lr = clip(La + REJECT_BUFFER_H, 0.0, 2.0)
+        boom = sample_normal_clipped(BOOM_HUMAN_MEAN, BOOM_HUMAN_SD, 0.0, 1.0, rng)
+
+    # Wymuś sensowność: La < Lr (z małym marginesem)
+    if La >= Lr:
+        mid = (La + Lr) / 2.0
+        La = max(0.0, mid - 0.2)
+        Lr = min(2.0, mid + 0.2)
+
+    return La, Lr, boom
+
+def sample_trust(source_type, rng):
+    if source_type == "AI":
+        return sample_normal_clipped(TRUST_AI_MEAN, TRUST_AI_SD, 0.0, 1.0, rng)
+    else:
+        return sample_normal_clipped(TRUST_HUMAN_MEAN, TRUST_HUMAN_SD, 0.0, 1.0, rng)
+
+# ==========================================
+# 3) Generator bodźców (feed)
+# ==========================================
+
+def sample_recommendation(feed_mode, rng):
+    """
+    Zwraca rekomendację w skali -1..+1.
+    - neutral: losowo z R_ITEMS
+    - polarizing_right: częściej dodatnie skrajności
+    - polarizing_left: częściej ujemne skrajności
+    """
+    if feed_mode == "neutral":
+        return float(rng.choice(R_ITEMS))
+
+    # rozdzielamy na "skrajne" i "umiarkowane/neutralne"
+    extreme_pos = np.array([1.00, 0.93, 0.87, 0.80], dtype=float)
+    extreme_neg = np.array([-0.93, -0.87, -0.80], dtype=float)
+    moderate = np.array([-0.30, -0.03, 0.00, 0.03, 0.30], dtype=float)
+
+    if feed_mode == "polarizing_right":
+        # 70% skrajne dodatnie, 30% reszta
+        if rng.random() < 0.70:
+            return float(rng.choice(extreme_pos))
+        return float(rng.choice(moderate))
+
+    if feed_mode == "polarizing_left":
+        # 70% skrajne ujemne, 30% reszta
+        if rng.random() < 0.70:
+            return float(rng.choice(extreme_neg))
+        return float(rng.choice(moderate))
+
+    raise ValueError(f"Nieznany FEED_MODE: {feed_mode}")
+
+# ==========================================
+# 4) Silnik ABM
 # ==========================================
 
 class Agent:
-    def __init__(self, opinion, susceptibility, trust_ai, trust_human):
-        self.opinion = opinion
-        self.susceptibility = susceptibility
-        self.trust_ai = trust_ai
-        self.trust_human = trust_human
-        
-        # Przypisanie parametrów z konfiguracji
-        self.lat_acceptance = LATITUDE_ACCEPTANCE
-        self.lat_rejection = LATITUDE_REJECTION
+    def __init__(self, source_type, rng):
+        # start opinii
+        self.opinion = sample_normal_clipped(OPINION_MEAN, OPINION_SD, -1.0, 1.0, rng)
 
-    def update_opinion(self, source_type, recommendation):
-        # Ustalenie wagi zaufania w zależności od źródła
-        if source_type == 'AI':
-            trust = self.trust_ai
+        # podatność
+        self.susceptibility = sample_beta_clipped(SUSC_ALPHA, SUSC_BETA, rng)  # 0..1
+
+        # zaufanie do danego źródła
+        self.trust = sample_trust(source_type, rng)  # 0..1
+
+        # progi + boomerang
+        self.lat_acceptance, self.lat_rejection, self.boomerang_strength = sample_latitudes(source_type, rng)
+
+    def update(self, recommendation):
+        # Siła wpływu: zaufanie * podatność
+        influence = self.trust * self.susceptibility
+
+        # dystans w osi opinii (-1..1), ale progi są w "dist" 0..2
+        dist_signed = recommendation - self.opinion
+        dist = abs(dist_signed)
+
+        # 1) Strefa akceptacji (asymilacja): zbliżamy się proporcjonalnie do dystansu
+        if dist < self.lat_acceptance:
+            change = influence * dist_signed
+
+        # 2) Strefa odrzucenia (kontrast + boomerang): „odbijamy się”
+        elif dist > self.lat_rejection:
+            # Uciekamy w przeciwną stronę względem rekomendacji
+            # (znak przeciwny do dist_signed)
+            change = -influence * self.boomerang_strength * np.sign(dist_signed)
+
+        # 3) Strefa obojętności: brak zmiany
         else:
-            trust = self.trust_human
+            change = 0.0
 
-        # Podstawowa siła wpływu (zaufanie * podatność osobista)
-        influence = trust * self.susceptibility
-        
-        # Oblicz dystans: Jak daleko jest treść od mojej głowy?
-        dist = recommendation - self.opinion
-        
-        # LOGIKA POLARYZACJI (Sherif & Hovland)
-        
-        # 1. Strefa Akceptacji (Asymilacja) -> Zgadzam się i przybliżam
-        if abs(dist) < self.lat_acceptance:
-            change = influence * dist
-            
-        # 2. Strefa Odrzucenia (Kontrast) -> Wkurzam się i oddalam (Efekt Bumerangowy)
-        elif abs(dist) > self.lat_rejection:
-            # Znak przeciwny do dystansu (ucieczka w drugą stronę)
-            # Mnożymy przez siłę bumerangu
-            change = - (influence * BOOMERANG_STRENGTH) * np.sign(dist)
-            
-        # 3. Strefa Obojętności -> Nic się nie dzieje
-        else:
-            change = 0
+        # Aktualizacja + clipping
+        self.opinion = clip(self.opinion + change, -1.0, 1.0)
 
-        # Aktualizacja opinii i pilnowanie zakresu [-1, 1]
-        self.opinion += change
-        self.opinion = max(-1, min(1, self.opinion))
+def run_simulation(source_type, feed_mode, seed=123):
+    rng = np.random.default_rng(seed)
 
-# --- INICJALIZACJA ---
-print(f"Start symulacji: Źródło={SOURCE_TYPE}, Rekomendacja={RECOMMENDATION_VALUE}")
+    agents = [Agent(source_type, rng) for _ in range(NUM_AGENTS)]
+    opinions_start = np.array([a.opinion for a in agents], dtype=float)
 
-# Generujemy populację o rozkładzie normalnym (większość w centrum)
-agents = []
-for _ in range(NUM_AGENTS):
-    # Opinie: Rozkład normalny (średnia 0, odchylenie 0.4)
-    op = np.random.normal(0, 0.4)
-    # Clip do [-1, 1]
-    op = max(-1, min(1, op))
-    
-    # Zaufanie i podatność (losowe w pewnym zakresie wokół średniej z konfiguracji)
-    susp = np.random.uniform(0.1, 0.9)
-    tr_ai = np.random.normal(TRUST_AI_MEAN, 0.1)
-    tr_hu = np.random.normal(TRUST_HUMAN_MEAN, 0.1)
-    
-    agents.append(Agent(op, susp, tr_ai, tr_hu))
+    mean_history = []
+    sd_history = []
 
-# Zapisujemy stan "PRZED"
-opinions_start = [a.opinion for a in agents]
+    for _ in range(ITERATIONS):
+        opinions = np.array([a.opinion for a in agents], dtype=float)
+        mean_history.append(float(opinions.mean()))
+        sd_history.append(float(opinions.std(ddof=1)))
 
-# --- PĘTLA CZASU ---
-history = []
-for i in range(ITERATIONS):
-    current_avg = np.mean([a.opinion for a in agents])
-    history.append(current_avg)
-    
-    # Każdy agent spotyka się z bodźcem
-    for agent in agents:
-        agent.update_opinion(SOURCE_TYPE, RECOMMENDATION_VALUE)
+        # Każdy agent dostaje bodziec (tu: jeden bodziec na iterację, wspólny feed)
+        rec = sample_recommendation(feed_mode, rng)
+        for a in agents:
+            a.update(rec)
 
-# Zapisujemy stan "PO"
-opinions_end = [a.opinion for a in agents]
+    opinions_end = np.array([a.opinion for a in agents], dtype=float)
+    return opinions_start, opinions_end, np.array(mean_history), np.array(sd_history)
 
 # ==========================================
-# 3. WIZUALIZACJA WYNIKÓW
+# 5) Prosta KDE bez seaborn (żeby nie wymagać seaborn)
 # ==========================================
-fig, ax = plt.subplots(1, 2, figsize=(15, 6))
 
-# Wykres A: Średnia opinia (czy tłum uległ?)
-ax[0].plot(history, linewidth=3, color='#3498db')
-ax[0].set_title(f"Dynamika Średniej Opinii (Źródło: {SOURCE_TYPE})", fontsize=14)
-ax[0].set_xlabel("Czas (iteracje)")
-ax[0].set_ylabel("Opinia (-1 Lewica ... +1 Prawica)")
-ax[0].set_ylim(-1, 1.1)
-ax[0].grid(True, alpha=0.3)
-ax[0].axhline(RECOMMENDATION_VALUE, color='green', linestyle='--', label='Pozycja Agenta')
-ax[0].legend()
+def kde_1d(x, grid, bw=0.12):
+    # Gaussian KDE (prosta implementacja)
+    x = x[~np.isnan(x)]
+    if len(x) == 0:
+        return np.zeros_like(grid)
+    diff = grid[:, None] - x[None, :]
+    kern = np.exp(-0.5 * (diff / bw) ** 2) / (bw * np.sqrt(2 * np.pi))
+    return kern.mean(axis=1)
 
-# Wykres B: Rozkład (GĘSTOŚĆ) - Tu widać polaryzację
-sns.kdeplot(opinions_start, ax=ax[1], fill=True, color='grey', alpha=0.3, label='Początek (T=0)')
-sns.kdeplot(opinions_end, ax=ax[1], fill=True, color='red', alpha=0.5, label=f'Koniec (T={ITERATIONS})')
+# ==========================================
+# 6) Uruchomienie + wykresy
+# ==========================================
 
-ax[1].set_title("Zmiana Rozkładu Społecznego (Polaryzacja)", fontsize=14)
-ax[1].set_xlabel("Spektrum Opinii")
-ax[1].set_xlim(-1.1, 1.1)
-ax[1].axvline(RECOMMENDATION_VALUE, color='green', linestyle='--', label='Stanowisko Agenta')
+if __name__ == "__main__":
+    print(f"Start ABM: SOURCE_TYPE={SOURCE_TYPE}, FEED_MODE={FEED_MODE}")
+    start, end, mean_hist, sd_hist = run_simulation(SOURCE_TYPE, FEED_MODE, seed=SEED)
 
-# Zaznaczamy strefy (dla celów edukacyjnych na wykresie)
-if SOURCE_TYPE == 'AI':
-    plt.text(-0.8, 0.5, f"Latitude Rejection: {LATITUDE_REJECTION}", fontsize=10, bbox=dict(facecolor='white', alpha=0.8))
+    # Wykres 1: średnia opinia w czasie
+    plt.figure(figsize=(7,4))
+    plt.plot(mean_hist, linewidth=2)
+    plt.ylim(-1.05, 1.05)
+    plt.xlabel("Iteracja (czas)")
+    plt.ylabel("Średnia opinia (-1..+1)")
+    plt.title(f"Średnia opinia w czasie | {SOURCE_TYPE} | feed={FEED_MODE}")
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
-ax[1].legend()
+    # Wykres 2: SD opinii w czasie (proxy polaryzacji)
+    plt.figure(figsize=(7,4))
+    plt.plot(sd_hist, linewidth=2)
+    plt.xlabel("Iteracja (czas)")
+    plt.ylabel("SD opinii (polaryzacja)")
+    plt.title(f"Polaryzacja (SD) w czasie | {SOURCE_TYPE} | feed={FEED_MODE}")
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
-plt.tight_layout()
-plt.savefig('/workspaces/doktorat/plot.png', dpi=150, bbox_inches='tight')
-print("✓ Wykres zapisany jako plot.png")
+    # Wykres 3: rozkład start vs koniec (KDE)
+    grid = np.linspace(-1.0, 1.0, 400)
+    d0 = kde_1d(start, grid, bw=0.12)
+    d1 = kde_1d(end, grid, bw=0.12)
+
+    plt.figure(figsize=(7,4))
+    plt.plot(grid, d0, linewidth=2, label="Start")
+    plt.plot(grid, d1, linewidth=2, label=f"Koniec (T={ITERATIONS})")
+    plt.xlabel("Opinia (-1..+1)")
+    plt.ylabel("Gęstość (KDE)")
+    plt.title(f"Rozkład opinii | {SOURCE_TYPE} | feed={FEED_MODE}")
+    plt.grid(alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()

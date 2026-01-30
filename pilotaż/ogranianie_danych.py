@@ -4,8 +4,9 @@ import numpy as np
 # -----------------------------
 # 0) Wczytanie danych
 # -----------------------------
-df = pd.read_csv("Dobre dane - Pilotaż.csv")
-
+df = pd.read_csv(
+    r"C:\Users\liebe\Desktop\GitHub\doktorat\pilotaż\Dobre_dane.csv"
+)
 
 
 # -----------------------------
@@ -127,4 +128,5 @@ print("Wymiary long:", long.shape)
 # -----------------------------
 # 6) (opcjonalnie) zapis do pliku
 # -----------------------------
-# long.to_csv("long_ready.csv", index=False)
+long.to_csv("long_ready.csv", index=False)
+
