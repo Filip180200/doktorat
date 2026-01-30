@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Doktorat — Wpływ społeczny i polaryzacja w środowisku algorytmicznym</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:#111a33;
+      --card2:#0f1730;
+      --text:#e8ecff;
+      --muted:#b7c1ff;
+      --line:rgba(255,255,255,.12);
+      --accent:#7aa2ff;
+      --accent2:#7cffd1;
+      --warn:#ffd37a;
+      --shadow: 0 12px 28px rgba(0,0,0,.35);
+      --radius:18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(122,162,255,.35), transparent 55%),
+                  radial-gradient(900px 500px at 85% 5%, rgba(124,255,209,.22), transparent 55%),
+                  radial-gradient(1100px 700px at 50% 110%, rgba(255,211,122,.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    .wrap{max-width:1100px; margin:0 auto; padding:28px 18px 80px}
+
+    header{
+      display:flex; gap:18px; align-items:flex-start; justify-content:space-between;
+      padding:22px; border:1px solid var(--line); border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(17,26,51,.85), rgba(15,23,48,.65));
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    header:before{
+      content:"";
+      position:absolute; inset:-2px;
+      background: radial-gradient(700px 220px at 30% 0%, rgba(122,162,255,.25), transparent 60%),
+                  radial-gradient(520px 180px at 90% 15%, rgba(124,255,209,.18), transparent 65%);
+      pointer-events:none;
+    }
+    .hero{position:relative}
+    .kicker{
+      font-family:var(--mono);
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-size:.78rem;
+      color:var(--muted);
+      margin:0 0 6px;
+    }
+    h1{margin:0 0 10px; font-size:1.55rem; line-height:1.2}
+    .subtitle{margin:0; color:var(--muted); max-width:70ch}
+
+    .meta{
+      position:relative;
+      display:grid; gap:10px;
+      min-width:260px;
+      align-content:start;
+    }
+    .pillrow{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; border-radius:999px;
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      color:var(--text);
+      font-size:.85rem;
+      white-space:nowrap;
+    }
+    .pill b{color:var(--accent2)}
+
+    nav{
+      margin:16px 0 0;
+      display:flex; flex-wrap:wrap; gap:10px;
+    }
+    .navbtn{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:var(--text);
+      font-size:.92rem;
+      cursor:pointer;
+    }
+    .navbtn:hover{background:rgba(255,255,255,.08)}
+
+    section{margin-top:20px}
+    .grid{display:grid; gap:16px}
+    .grid.cols2{grid-template-columns:repeat(2, minmax(0,1fr))}
+    .grid.cols3{grid-template-columns:repeat(3, minmax(0,1fr))}
+    @media (max-width:900px){
+      .grid.cols2,.grid.cols3{grid-template-columns:1fr}
+      header{flex-direction:column}
+      .meta{min-width:unset}
+      .pillrow{justify-content:flex-start}
+    }
+
+    .card{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(17,26,51,.72), rgba(15,23,48,.55));
+      box-shadow:var(--shadow);
+      padding:16px;
+      position:relative;
+      overflow:hidden;
+    }
+    .card h2{margin:0 0 8px; font-size:1.15rem}
+    .card h3{margin:0 0 8px; font-size:1.05rem}
+    .muted{color:var(--muted)}
+    .small{font-size:.92rem}
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      font-family:var(--mono);
+      font-size:.78rem;
+      color:var(--muted);
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+      padding:6px 9px;
+      border-radius:999px;
+      margin-bottom:10px;
+    }
+
+    .list{margin:10px 0 0; padding:0 0 0 18px}
+    .list li{margin:6px 0}
+
+    .hr{height:1px; background:var(--line); margin:12px 0}
+
+    .toolbar{
+      display:flex; gap:10px; flex-wrap:wrap;
+      align-items:center; justify-content:space-between;
+      margin:10px 0 12px;
+    }
+    .search{
+      flex:1;
+      min-width:220px;
+      display:flex; gap:10px;
+      align-items:center;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+    }
+    .search input{
+      width:100%;
+      border:0;
+      outline:none;
+      background:transparent;
+      color:var(--text);
+      font-size:.95rem;
+    }
+    .filters{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      cursor:pointer;
+      font-size:.85rem;
+      color:var(--text);
+    }
+    .chip.active{border-color:rgba(122,162,255,.65); background:rgba(122,162,255,.12)}
+
+    table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:14px; border:1px solid var(--line)}
+    thead th{
+      text-align:left;
+      padding:12px 12px;
+      background:rgba(255,255,255,.06);
+      font-size:.85rem;
+      color:var(--muted);
+      border-bottom:1px solid var(--line);
+    }
+    tbody td{
+      padding:12px 12px;
+      vertical-align:top;
+      border-bottom:1px solid rgba(255,255,255,.07);
+      font-size:.92rem;
+    }
+    tbody tr:last-child td{border-bottom:0}
+    .term{font-weight:700}
+    .cat{font-family:var(--mono); font-size:.82rem; color:var(--muted)}
+    .refs{font-size:.88rem; color:var(--muted)}
+
+    .callout{
+      border-left:4px solid var(--warn);
+      padding:12px 12px;
+      background:rgba(255,211,122,.08);
+      border-radius:14px;
+      border:1px solid rgba(255,211,122,.25);
+    }
+
+    footer{
+      margin-top:22px;
+      padding-top:14px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-size:.92rem;
+    }
+
+    .kbd{font-family:var(--mono); background:rgba(255,255,255,.06); border:1px solid var(--line); padding:2px 6px; border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header id="top">
+      <div class="hero">
+        <p class="kicker">Doktorat (wersja robocza)</p>
+        <h1>Wpływ społeczny i polaryzacja postaw w środowisku cyfrowym zaprojektowanym przez algorytmy i sztuczną inteligencję</h1>
+        <p class="subtitle">
+          Seria eksperymentów online w środowisku feedowym + symulacja agentowa (ABM) jako narzędzie eksploracyjne.
+          Cel: zrozumieć, kiedy AI działa jak <b>autorytet epistemiczny</b>, kiedy pojawia się <b>awersja algorytmiczna</b>, i jak personalizacja treści wpływa na (de)polaryzację.
+        </p>
+        <nav aria-label="Skróty">
+          <button class="navbtn" data-jump="#overview">Przegląd</button>
+          <button class="navbtn" data-jump="#studies">Badania 1–3</button>
+          <button class="navbtn" data-jump="#abm">ABM</button>
+          <button class="navbtn" data-jump="#glossary">Słownik</button>
+          <button class="navbtn" data-jump="#analysis">Analiza</button>
+          <button class="navbtn" data-jump="#refs">Źródła</button>
+        </nav>
+      </div>
+      <aside class="meta" aria-label="Metadane">
+        <div class="pillrow">
+          <span class="pill">Autor: <b>Filip Liebersbach</b></span>
+          <span class="pill">Format: <b>online</b></span>
+          <span class="pill">Metoda: <b>LMM</b></span>
+          <span class="pill">Model: <b>ABM</b></span>
+        </div>
+        <div class="callout small">
+          <b>Jak czytać tę stronę?</b><br/>
+          Użyj skrótów u góry. W słowniku wpisz hasło (np. <span class="kbd">trust</span>, <span class="kbd">La</span>) albo filtruj po kategorii.
+        </div>
+      </aside>
+    </header>
+
+    <section id="overview" class="grid cols2" aria-label="Przegląd">
+      <div class="card">
+        <div class="badge">Problem</div>
+        <h2>Co badam?</h2>
+        <p class="muted small">
+          Ludzie podejmują decyzje i kształtują postawy w środowisku, gdzie treści są dobierane algorytmicznie, a rekomendacje mogą pochodzić od AI.
+          Interesuje mnie wpływ na trzech poziomach: mikro (autorytet), mezo (normy), makro (architektura ekspozycji).
+        </p>
+        <ul class="list small">
+          <li><b>Mikro:</b> Czy AI jest traktowana jak ekspert i zwiększa uległość?</li>
+          <li><b>Mezo:</b> Czy sygnały większości (lajki/etykiety) zmieniają decyzje?</li>
+          <li><b>Makro:</b> Czy personalizacja + selektywna ekspozycja prowadzi do polaryzacji?</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="badge">Dlaczego to ważne?</div>
+        <h2>Po co to robię?</h2>
+        <p class="muted small">
+          W praktyce platformy mogą wzmacniać bańki informacyjne, radykalizację i wrogość międzygrupową.
+          Potrzebujemy eksperymentów z realnym użytkownikiem i kontrolą ekspozycji, żeby rozdzielić efekt treści od efektu sprawstwa.
+        </p>
+        <div class="hr"></div>
+        <p class="small"><b>Wkład:</b> integracja klasycznych teorii wpływu społecznego z interaktywnym środowiskiem feedowym + porównywalny schemat badań 1–3.</p>
+      </div>
+    </section>
+
+    <section id="studies" aria-label="Badania 1–3">
+      <div class="card">
+        <div class="badge">Badania (karty)</div>
+        <h2>Badania 1–3</h2>
+        <p class="muted small">Każde badanie jest mini-eksperymentem w środowisku podobnym do platform społecznościowych (feed). Poniżej: cel → manipulacja → pomiary → oczekiwany efekt.</p>
+      </div>
+
+      <div class="grid cols3" style="margin-top:16px">
+        <article class="card" id="study1">
+          <div class="badge">Study 1</div>
+          <h3>AI vs człowiek vs system bezosobowy</h3>
+          <p class="small muted"><b>Cel:</b> czy AI działa jak autorytet epistemiczny (uległość porównywalna z człowiekiem)?</p>
+          <ul class="list small">
+            <li><b>Manipulacja:</b> źródło rekomendacji (AI / człowiek / system)</li>
+            <li><b>Miara główna:</b> zmiana opinii <span class="kbd">Δ = post − pre</span></li>
+            <li><b>Dodatkowo:</b> „zaufanie” deklaratywne, ocena kompetencji/obiektywizmu</li>
+          </ul>
+          <div class="hr"></div>
+          <p class="small"><b>Hipoteza robocza:</b> większy wpływ AI przy aktywnej heurystyce maszyny; spadek po ekspozycji na błąd → awersja algorytmiczna.</p>
+        </article>
+
+        <article class="card" id="study2">
+          <div class="badge">Study 2</div>
+          <h3>Sygnały normatywne</h3>
+          <p class="small muted"><b>Cel:</b> czy sygnały większości (lajki/etykiety) przesuwają decyzje i emocje względem oponentów?</p>
+          <ul class="list small">
+            <li><b>Manipulacja:</b> liczba polubień / „większość uważa…”</li>
+            <li><b>Miary:</b> Δ opinii + miary afektywne (np. termometr uczuć)</li>
+            <li><b>Kontrola:</b> stałe treści, zmienne „metryki” społeczne</li>
+          </ul>
+          <div class="hr"></div>
+          <p class="small"><b>Hipoteza robocza:</b> normy wzmacniają konformizm, szczególnie przy niepewności i niskiej wiedzy.</p>
+        </article>
+
+        <article class="card" id="study3">
+          <div class="badge">Study 3</div>
+          <h3>Selektywna ekspozycja + personalizacja</h3>
+          <p class="small muted"><b>Cel:</b> czy możliwość „kształtowania feedu” (np. <i>nie chcę tego widzieć</i>) wzmacnia czy osłabia polaryzację?</p>
+          <ul class="list small">
+            <li><b>Manipulacja:</b> personalizacja vs kontrola sprzężona (<i>yoked control</i>)</li>
+            <li><b>Miary:</b> wybory treści (kliknięcia), ukrycia, czas ekspozycji + Δ opinii</li>
+            <li><b>Klucz:</b> rozdzielenie efektu treści od poczucia sprawstwa</li>
+          </ul>
+          <div class="hr"></div>
+          <p class="small"><b>Hipoteza robocza:</b> agency może zwiększać selektywną ekspozycję i prowadzić do dywergencji postaw.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="abm" aria-label="ABM">
+      <div class="grid cols2">
+        <div class="card">
+          <div class="badge">ABM</div>
+          <h2>Po co ABM w tym projekcie?</h2>
+          <p class="muted small">
+            ABM nie jest dowodem empirycznym. To „eksperyment myślowy w kodzie”, który pozwala sprawdzić, jakie wzorce (konsensus vs polaryzacja) mogą wyłonić się przy różnych parametrach psychologicznych.
+          </p>
+          <ul class="list small">
+            <li><b>Wejście:</b> rozkłady opinii + parametry (La, Lr, zaufanie, reaktancja)</li>
+            <li><b>Reguła:</b> porównanie dystansu treści do La/Lr → asymilacja/ignorowanie/bumerang</li>
+            <li><b>Wyjście:</b> dystrybucja postaw w czasie, punkty krytyczne, emergencja</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="badge">Parametry (intuicyjnie)</div>
+          <h2>Jak parametry łączą się z danymi?</h2>
+          <p class="muted small">
+            Parametry ABM mogą być zakotwiczone w pilotażu: La/Lr jako progi akceptacji/odrzucenia, a <span class="kbd">μ_trust</span> jako przeciętna waga wpływu źródła (np. średnie Δ po AI).
+          </p>
+          <div class="hr"></div>
+          <p class="small"><b>Most:</b> LMM → estymuje średnie efekty i wariancję między osobami; ABM → używa tych rozkładów do symulacji dynamiki populacyjnej.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="glossary" aria-label="Słownik">
+      <div class="card">
+        <div class="badge">Słownik</div>
+        <h2>Słownik pojęć kluczowych</h2>
+        <p class="muted small">Wyszukuj pojęcia lub filtruj po kategorii. Źródła w kolumnie „Badania” to skróty cytowań (np. Sherif & Hovland, 1961).</p>
+
+        <div class="toolbar" role="group" aria-label="Wyszukiwanie i filtry">
+          <div class="search" aria-label="Wyszukiwarka">
+            <span class="muted" style="font-family:var(--mono)">🔎</span>
+            <input id="q" type="text" placeholder="Szukaj: La, trust, ABM, yoked, polaryzacja…" />
+          </div>
+          <div class="filters" aria-label="Filtry">
+            <button class="chip active" data-cat="all">Wszystko</button>
+            <button class="chip" data-cat="metodologia">Metodologia</button>
+            <button class="chip" data-cat="teoria">Teoria</button>
+            <button class="chip" data-cat="zjawisko">Zjawisko</button>
+            <button class="chip" data-cat="statystyka">Statystyka</button>
+            <button class="chip" data-cat="parametr">Parametr</button>
+          </div>
+        </div>
+
+        <div style="overflow:auto">
+          <table aria-label="Tabela pojęć" id="glossTable">
+            <thead>
+              <tr>
+                <th style="width:18%">Termin</th>
+                <th style="width:14%">Kategoria</th>
+                <th>Wyjaśnienie (krótkie)</th>
+                <th style="width:22%">Badania / źródła</th>
+              </tr>
+            </thead>
+            <tbody id="glossBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="analysis" aria-label="Analiza">
+      <div class="grid cols2">
+        <div class="card">
+          <div class="badge">Analiza danych</div>
+          <h2>Linear Mixed Models (LMM)</h2>
+          <p class="muted small">
+            Dane są zagnieżdżone: wiele prób (postów) w jednej osobie + różne bodźce. LMM pozwala uwzględnić różnice między osobami i tekstami.
+          </p>
+          <ul class="list small">
+            <li><b>DV:</b> zmiana opinii <span class="kbd">Δ = post − pre</span> lub zachowania (kliknięcia)</li>
+            <li><b>Efekty stałe:</b> źródło (AI vs człowiek), trial, personalizacja, normy</li>
+            <li><b>Losowe:</b> osoba i bodziec (min. intercepty)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="badge">Metryki środowiska</div>
+          <h2>Co loguję w aplikacji?</h2>
+          <ul class="list small">
+            <li>pre/post opinia (jedno pytanie na trial)</li>
+            <li>kliknięcia: like/dislike/share/hide</li>
+            <li>czas ekspozycji (dwell time)</li>
+            <li>wybór treści (selektywna ekspozycja)</li>
+          </ul>
+          <div class="hr"></div>
+          <p class="small"><b>Cel:</b> oprócz deklaracji mieć zachowania feedowe, które mapują się na mechanizmy selektywnej ekspozycji.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="refs" aria-label="Źródła">
+      <div class="card">
+        <div class="badge">Źródła (skrótowo)</div>
+        <h2>Wybrane odnośniki do badań</h2>
+        <p class="muted small">To jest lista „kotwic” do cytowań. Pełną bibliografię możesz trzymać w osobnym pliku (Zotero/EndNote).</p>
+        <ul class="list small">
+          <li>Judd, Westfall & Kenny (2012) — bodźce jako losowy czynnik w psychologii (LMM).</li>
+          <li>Kruglanski (1989) — autorytet epistemiczny / lay epistemics.</li>
+          <li>Sundar (2020) — machine agency / heurystyka maszyny.</li>
+          <li>Logg, Minson & Moore (2019) — algorithm appreciation.</li>
+          <li>Dietvorst, Simmons & Massey (2015) — algorithm aversion po błędzie.</li>
+          <li>Castelo, Bos & Lehman (2019) — subiektywność zadania sprzyja awersji algorytmicznej.</li>
+          <li>Stroud (2008) — selektywna ekspozycja.</li>
+          <li>Eslami et al. (2015) — „niewidzialne algorytmy” w feedzie (HCI/CHI).</li>
+          <li>Flaxman, Goel & Rao (2016) — bańki / echo chambers w konsumpcji newsów.</li>
+          <li>Bail et al. (2018) — ekspozycja na odmienne poglądy a polaryzacja.</li>
+          <li>Iyengar et al. (2012) — polaryzacja afektywna.</li>
+          <li>Sherif & Hovland (1961) — SJT, La/Lr.</li>
+          <li>Brehm (1966) — reaktancja.</li>
+          <li>Sunstein (2009) — dynamika skrajności.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer>
+      <div class="grid cols2">
+        <div style="text-align:right">
+          <a href="#top">↑ do góry</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // ---- Smooth scroll nav ----
+    document.querySelectorAll('[data-jump]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sel = btn.getAttribute('data-jump');
+        const el = document.querySelector(sel);
+        if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+
+    // ---- Glossary data ----
+    const GLOSS = [
+      {
+        term: 'Agent-Based Modeling (ABM)',
+        cat: 'metodologia',
+        desc: 'Symulacja wielu agentów (użytkowników) wg prostych reguł, aby obserwować emergencję (np. polaryzację) na poziomie populacji.',
+        refs: 'Epstein & Axtell (1996); Bonabeau (2002)'
+      },
+      {
+        term: 'Autorytet epistemiczny',
+        cat: 'teoria',
+        desc: 'Wpływ oparty na postrzeganiu źródła jako kompetentnego poznawczo („wie lepiej/szybciej”), bez sankcji i przymusu.',
+        refs: 'Kruglanski (1989)'
+      },
+      {
+        term: 'Heurystyka maszyny (Machine Heuristic)',
+        cat: 'teoria',
+        desc: 'Skrót poznawczy: systemom algorytmicznym przypisuje się obiektywizm i precyzję, co może zwiększać uległość wobec rekomendacji AI.',
+        refs: 'Sundar (2020); Logg et al. (2019)'
+      },
+      {
+        term: 'Awersja algorytmiczna (Algorithm Aversion)',
+        cat: 'zjawisko',
+        desc: 'Spadek zaufania i unikanie rekomendacji algorytmu po zauważeniu błędu (często nawet gdy algorytm nadal jest trafniejszy).',
+        refs: 'Dietvorst et al. (2015); Castelo et al. (2019)'
+      },
+      {
+        term: 'Selektywna ekspozycja',
+        cat: 'teoria',
+        desc: 'Tendencja do wybierania treści zgodnych z własnymi przekonaniami i unikania treści sprzecznych.',
+        refs: 'Stroud (2008)'
+      },
+      {
+        term: 'Personalizacja algorytmiczna',
+        cat: 'teoria',
+        desc: 'Dobór treści na podstawie wcześniejszych zachowań użytkownika; może wzmacniać bańki informacyjne.',
+        refs: 'Eslami et al. (2015); Flaxman et al. (2016)'
+      },
+      {
+        term: 'Polaryzacja afektywna',
+        cat: 'zjawisko',
+        desc: 'Wzrost niechęci/wrogości wobec osób o przeciwnych poglądach (nie tylko różnica w treści przekonań).',
+        refs: 'Iyengar et al. (2012)'
+      },
+      {
+        term: 'Emergencja',
+        cat: 'teoria',
+        desc: 'Wzorce makro (np. podział na obozy) wynikające z prostych reguł mikro; nie dają się łatwo przewidzieć z poziomu jednostki.',
+        refs: 'Holland (1998)'
+      },
+      {
+        term: 'Latitude of Acceptance (La)',
+        cat: 'teoria',
+        desc: 'Zakres poglądów, które jednostka uznaje za akceptowalne/warte rozważenia; treści w La sprzyjają asymilacji.',
+        refs: 'Sherif & Hovland (1961)'
+      },
+      {
+        term: 'Latitude of Rejection (Lr)',
+        cat: 'teoria',
+        desc: 'Zakres poglądów uznawanych za nieakceptowalne; przekroczenie Lr może uruchamiać opór/bumerang.',
+        refs: 'Sherif & Hovland (1961)'
+      },
+      {
+        term: 'Efekt bumerangowy (Backfire)',
+        cat: 'zjawisko',
+        desc: 'Paradoksalne wzmocnienie pierwotnej postawy po zbyt radykalnej perswazji (związane m.in. z reaktancją).',
+        refs: 'Brehm (1966)'
+      },
+      {
+        term: 'Yoked Control Procedure',
+        cat: 'metodologia',
+        desc: 'Uczestnik kontrolny otrzymuje identyczne bodźce jak sparowany uczestnik eksperymentalny, ale bez sprawstwa — izoluje efekt agency.',
+        refs: 'procedura klasyczna (kontrola sprzężona)'
+      },
+      {
+        term: 'Wiarygodność źródła AI (μ_trust)',
+        cat: 'parametr',
+        desc: 'Parametr modelu: średnia „waga” wpływu źródła AI; można ją zakotwiczyć w danych jako przeciętne Δ opinii po rekomendacji AI.',
+        refs: 'Sundar (2020); Logg et al. (2019)'
+      },
+      {
+        term: 'Linear Mixed Models (LMM)',
+        cat: 'statystyka',
+        desc: 'Modele uwzględniające efekty stałe (manipulacje) i losowe (osoby, bodźce) — standard przy danych zagnieżdżonych.',
+        refs: 'Judd et al. (2012)'
+      }
+    ];
+
+    function renderGloss(rows){
+      const body = document.getElementById('glossBody');
+      body.innerHTML = rows.map(r => `
+        <tr>
+          <td><div class="term">${escapeHtml(r.term)}</div></td>
+          <td><div class="cat">${escapeHtml(r.cat)}</div></td>
+          <td>${escapeHtml(r.desc)}</td>
+          <td class="refs">${escapeHtml(r.refs)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#039;');
+    }
+
+    // Filtering
+    let activeCat = 'all';
+    const q = document.getElementById('q');
+
+    function applyFilters(){
+      const query = (q.value || '').trim().toLowerCase();
+      const filtered = GLOSS.filter(r => {
+        const inCat = activeCat === 'all' ? true : r.cat === activeCat;
+        const inQ = !query ? true : (
+          r.term.toLowerCase().includes(query) ||
+          r.desc.toLowerCase().includes(query) ||
+          r.refs.toLowerCase().includes(query) ||
+          r.cat.toLowerCase().includes(query)
+        );
+        return inCat && inQ;
+      });
+      renderGloss(filtered);
+    }
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeCat = chip.getAttribute('data-cat');
+        applyFilters();
+      });
+    });
+
+    q.addEventListener('input', applyFilters);
+
+    // Initial render
+    renderGloss(GLOSS);
+  </script>
+</body>
+</html>
